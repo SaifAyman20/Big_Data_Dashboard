@@ -58,7 +58,7 @@ ICON_ACC = "⚠️"
 # Load data (update path)
 # -------------------------
 @st.cache_data
-def load_data(path=r"B:\Collage Assigments\Big Data\Project\project\merged_dataset.csv"):
+def load_data(path=r"merged_dataset.csv"):
     df = pd.read_csv(path)
     if "date_time" in df.columns:
         df["date_time"] = pd.to_datetime(df["date_time"], errors="coerce")
@@ -351,3 +351,4 @@ st.sidebar.markdown("- Ensure colors are visible in dark mode if your users swit
 st.sidebar.markdown("- Use Top-N to focus on the most important areas.")
 
 # End of dashboard
+
