@@ -1,4 +1,3 @@
-# streamlit_dashboard_ux_v2_en.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -6,15 +5,10 @@ import plotly.graph_objects as go
 import numpy as np
 from io import BytesIO
 
-# -------------------------
-# Requirements
-# -------------------------
-# pip install streamlit pandas plotly kaleido
-
-# -------------------------
+# -----------------------
 # Page config + base CSS
-# -------------------------
-st.set_page_config(page_title="Traffic & Weather — UX v2 (EN)", layout="wide", initial_sidebar_state="expanded")
+# -----------------------
+st.set_page_config(page_title="Traffic & Weather Dashboard", layout="wide", initial_sidebar_state="expanded")
 
 base_css = """
 <style>
@@ -25,24 +19,44 @@ base_css = """
   --accent:#ef4444;
 }
 body { background: var(--bg); }
-.header-title { font-size: 34px; font-weight:800; margin:0; }
-.header-sub { color: var(--muted); margin-top:6px; margin-bottom:18px; font-size:14px; }
-.kpi { padding: 14px; border-radius: 12px; background: #ffffff; box-shadow: 0 6px 18px rgba(15,23,42,0.06); }
-.metric-label {font-size:13px; color:var(--muted); margin-bottom:6px;}
-.metric-value {font-size:26px; font-weight:700; color:#111827;}
-.metric-caption {font-size:12px; color:var(--muted); margin-top:6px;}
-.metric-delta {font-size:13px; margin-top:8px; display:inline-block; padding:5px 10px; border-radius:999px;}
-.delta-up { background: rgba(16,185,129,0.12); color:#059669; }
-.delta-down { background: rgba(239,68,68,0.12); color:#dc2626; }
-.kpi-row { gap:16px; }
-.small-note { font-size:13px; color:var(--muted); }
-.legend-box { display:inline-block; padding:6px 10px; border-radius:6px; margin-right:8px; font-size:13px; background:#f3f4f6; color:#111827;}
+.header-title { font-size: 36px; font-weight:800; margin:0 0 0 -10px; }
+.header-sub { color: var(--muted); margin-top:6px; margin-bottom:18px; margin-left:5px; font-size:14px; }
+
+/* ======= KPI card style (clean + fixed height) ======= */
+.kpi {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom:5px;
+  box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+  border: 1px solid rgba(15,23,42,0.03);
+  height: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+/* label, value, caption */
+.metric-label { font-size:13px; color:var(--muted); margin:0; }
+.metric-value { font-size:24px; font-weight:700; color:#111827; margin:0; }
+.metric-caption { font-size:12px; color:var(--muted); margin:0; }
+
+/* responsive tweaks */
 @media (max-width:900px){
   .header-title { font-size:26px; }
   .metric-value { font-size:20px; }
+  .kpi { height: 115px; padding:12px; }
+}
+@media (max-width:480px){
+  .metric-label { font-size:12px; }
+  .metric-value { font-size:18px; }
+  .metric-caption { font-size:11px; }
+  .kpi { height: 105px; }
 }
 </style>
 """
+
 st.markdown(base_css, unsafe_allow_html=True)
 
 # -------------------------
@@ -55,10 +69,10 @@ ICON_VEH = "🚗"
 ICON_ACC = "⚠️"
 
 # -------------------------
-# Load data (update path)
+# Load data
 # -------------------------
 @st.cache_data
-def load_data(path=r"merged_dataset.csv"):
+def load_data(path="merged_dataset.csv"):
     df = pd.read_csv(path)
     if "date_time" in df.columns:
         df["date_time"] = pd.to_datetime(df["date_time"], errors="coerce")
@@ -72,11 +86,68 @@ except Exception as e:
     st.error(f"Failed loading dataset: {e}")
     st.stop()
 
-# -------------------------
+# ---------------------
+# Header + description
+# ---------------------
+st.markdown('<div>'
+            '<div class="header-title">🚦Traffic & Weather</div>'
+            '<div class="header-sub">Interactive dashboard for traffic and weather with fast filters and quick insights.</div>'
+            '</div>', unsafe_allow_html=True)
+
+# metrics
+avg_temp = df["temperature_c"].mean()
+avg_humidity = df["humidity"].mean()
+total_vehicles = int(df["vehicle_count"].sum())
+total_accidents = int(df["accident_count"].sum())
+
+# -------
+# KPI Row 
+# -------
+k1, k2, k3, k4 = st.columns([1.3,1.3,1.3,1.3])
+
+with k1:
+    st.markdown(f"""
+        <div class="kpi">
+            <div class="metric-label">{ICON_TEMP} Average Temperature (°C)</div>
+            <div class="metric-value">{avg_temp:.1f}</div>
+            <div class="metric-caption">Average temperature for the selected period.</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+with k2:
+    st.markdown(f"""
+        <div class="kpi">
+            <div class="metric-label">{ICON_HUM} Avg Humidity (%)</div>
+            <div class="metric-value">{avg_humidity:.0f}</div>
+            <div class="metric-caption">Average humidity for the selected period.</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+with k3:
+    st.markdown(f"""
+        <div class="kpi">
+            <div class="metric-label">{ICON_VEH} Total Vehicles</div>
+            <div class="metric-value">{total_vehicles:,}</div>
+            <div class="metric-caption">Total vehicle count in the filtered dataset.</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+with k4:
+    st.markdown(f"""
+        <div class="kpi">
+            <div class="metric-label">{ICON_ACC} Total Accidents</div>
+            <div class="metric-value">{total_accidents:,}</div>
+            <div class="metric-caption">Total accidents in the selected filters.</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+st.write("\n")
+
+
+# ----------------------------
 # Sidebar — Controls & Filters
-# -------------------------
-st.sidebar.title("Controls")
-city = st.sidebar.selectbox("City", options=np.append(["All"], df["city"].dropna().unique()), index=0)
+# ----------------------------
+st.sidebar.title("Filters")
 season = st.sidebar.multiselect("Season", options=df["season"].dropna().unique(), default=df["season"].dropna().unique())
 
 # Area search + Top-N selector
@@ -101,8 +172,6 @@ with st.sidebar.expander("Advanced"):
 # Apply filters
 # -------------------------
 df_f = df.copy()
-if city != "All":
-    df_f = df_f[df_f["city"] == city]
 if season:
     df_f = df_f[df_f["season"].isin(season)]
 
@@ -128,20 +197,7 @@ if df_f.empty:
     st.warning("No records match the filters — try widening the date range or removing filters.")
     st.stop()
 
-# -------------------------
-# Header + description
-# -------------------------
-colh1, colh2 = st.columns([9,3])
-with colh1:
-    st.markdown('<div style="display:flex;align-items:center;gap:14px;">'
-                '<div style="font-size:34px;">🚦</div>'
-                '<div><div class="header-title">Traffic & Weather — UX v2</div>'
-                '<div class="header-sub">Interactive dashboard for traffic and weather with fast filters and quick insights.</div></div>'
-                '</div>', unsafe_allow_html=True)
-with colh2:
-    st.markdown('<div style="text-align:right;">'
-                '<div class="legend-box">Legend</div><div class="small-note">Colors = congestion level</div>'
-                '</div>', unsafe_allow_html=True)
+
 
 # -------------------------
 # Prepare series + aggregations
@@ -168,69 +224,7 @@ def pct_change(s, shift):
         return 0.0
     return (curr - prev) / prev * 100
 
-# metrics
-avg_temp = df_f["temperature_c"].mean()
-avg_humidity = df_f["humidity"].mean()
-total_vehicles = int(df_f["vehicle_count"].sum())
-total_accidents = int(df_f["accident_count"].sum())
-vehicle_pct = pct_change(vehicle_agg, delta_period)
-acc_series = df_time_all["accident_count"].resample("D").sum().fillna(0)
-if agg == "Daily":
-    acc_agg = acc_series
-    acc_shift = 7
-elif agg == "Weekly":
-    acc_agg = acc_series.resample("W").sum()
-    acc_shift = 1
-else:
-    acc_agg = acc_series.resample("M").sum()
-    acc_shift = 1
-acc_pct = pct_change(acc_agg, acc_shift)
 
-def delta_html(pct):
-    cls = "delta-up" if pct >= 0 else "delta-down"
-    arrow = "▲" if pct >= 0 else "▼"
-    return f'<span class="metric-delta {cls}">{arrow} {abs(pct):.1f}%</span>'
-
-# -------------------------
-# KPI Row (improved)
-# -------------------------
-k1, k2, k3, k4 = st.columns([1.7,1.3,1.3,1.3])
-with k1:
-    st.markdown(f"""
-        <div class="kpi">
-            <div class="metric-label">{ICON_TEMP} Average Temperature (°C)</div>
-            <div class="metric-value">{avg_temp:.1f}</div>
-            <div class="metric-caption">Average temperature for the selected period.</div>
-        </div>
-    """, unsafe_allow_html=True)
-with k2:
-    st.markdown(f"""
-        <div class="kpi">
-            <div class="metric-label">{ICON_HUM} Avg Humidity (%)</div>
-            <div class="metric-value">{avg_humidity:.0f}</div>
-            <div class="metric-caption">Average humidity to help explain visibility and road conditions.</div>
-        </div>
-    """, unsafe_allow_html=True)
-with k3:
-    st.markdown(f"""
-        <div class="kpi">
-            <div class="metric-label">{ICON_VEH} Total Vehicles</div>
-            <div class="metric-value">{total_vehicles:,}</div>
-            {delta_html(vehicle_pct)}
-            <div class="metric-caption">Total vehicle count in the filtered dataset.</div>
-        </div>
-    """, unsafe_allow_html=True)
-with k4:
-    st.markdown(f"""
-        <div class="kpi">
-            <div class="metric-label">{ICON_ACC} Total Accidents</div>
-            <div class="metric-value">{total_accidents:,}</div>
-            {delta_html(acc_pct)}
-            <div class="metric-caption">Total accidents — check Detailed tab for peak times.</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-st.markdown("---")
 
 # -------------------------
 # Tabs with improved charts
@@ -351,4 +345,3 @@ st.sidebar.markdown("- Ensure colors are visible in dark mode if your users swit
 st.sidebar.markdown("- Use Top-N to focus on the most important areas.")
 
 # End of dashboard
-
